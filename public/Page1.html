@@ -1,0 +1,208 @@
+<!DOCTYPEhtml>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    <style>
+        #target {
+            border: solid;
+            height: 150px;
+            width: 300px;
+            background-color: yellow;
+            text-align: center;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.0/socket.io.js"></script>
+    <script>
+        var socket;
+        $(document).ready(function () {
+            socket = io.connect('http://localhost:1337');
+            socket.on('connect', addUser);
+            socket.on('chat', processMessage);
+            socket.on('allusers', updateUserList);
+/*            $('#datasend').click(sendMessage);*/
+            $('#datasend2').click(sendMessage2);
+            //$('#data').keypress(processEnterPress);
+
+            jQuery.event.props.push('dataTransfer');
+            $('#target').on('dragenter', preventDefault);
+            $('#target').on('dragover', preventDefault);
+            $('#target').on('drop', dropItem);
+
+        });
+
+        function preventDefault(e) {
+            e.preventDefault();
+        }
+        function dropItem(e) {
+            e.preventDefault();
+            var files = e.dataTransfer.files
+            a = "";
+            i = 0;
+
+            for (i = 0; i < files.length; i++) {
+
+                (function (file) {
+                    var name = file.name;
+                    var reader = new FileReader();
+                    reader.onload = function (e1) {
+                        // get file content
+                        var text = e1.target.result;
+                        socket.emit('sendchat', "<img style=width:100px;height=100px src='" + text + "'/>");
+                        //var li = document.createElement("li");
+                        //li.innerHTML = name + "____" + text;
+                        //ul.appendChild(li);
+                    }
+                    reader.readAsDataURL(file, "UTF-8");
+                })(files[i]);
+            }
+
+            preventDefault(e);
+        }
+
+
+        function addUser() {
+            socket.emit('adduser', prompt("What's your name?"));
+        }
+        function processMessage(username, data) {
+            //alert(data);
+            
+            $('<b>' + username + ':</b>' + data + '<br />').insertAfter($('#conversation'));
+        }
+        function updateUserList(data) {
+            $('#users').empty();
+            $.each(data, function (key, value) {
+                $('#users').append('<div>' + key + '</div>');
+            });
+        }
+        //function sendMessage() {
+        //    var message = $('#data').val();
+        //    $('#data').val("");
+        //    socket.emit('sendchat', message);
+        //    $('#data').focus();
+        //}
+
+        function sendMessage2() {
+            var message1 = $('#data').val();
+            $('#data').val("");
+           // socket.emit('sendchat', message);
+            $('#data').focus();
+            var fileInput = $("#file1")[0];
+            //alert(fileInput);
+            var file = fileInput.files[0];
+            if (typeof (file) != "object")
+                socket.emit('sendchat', message1);
+            else {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    message = reader.result;
+                    socket.emit('sendchat', message1 + "<br/><img style=width:100px;height=100px src='" + message + "'/><hr/>");
+                    $('#data').focus();
+                    // $("#img").attr("src", message)
+                    $('#file1').val("");
+                }
+                //reader.onerror = function (e) {
+                //    socket.emit('sendchat', message1);
+                //};
+                reader.readAsDataURL(file);
+            }
+
+        }
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        .screen, .userContainer,.ICON {
+            background-color: #fff;
+            height: 100%;
+            width: 300px;
+            margin: 0 auto;
+            box-shadow: 0 2px 2px rgba(0,0,0,.2);
+        }
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            line-height: 2;
+            color: black;
+        }
+
+        .conversationContainer:after {
+             /*height: 50px;
+            border-top: 1px solid #ccc;*/
+            content: '';
+            background: linear-gradient(rgb(255, 143, 178) 0%, rgb(167, 151, 255) 50%, rgb(0, 229, 255) 100%);
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 100%;
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+
+        input {
+            width: 100%;
+            height: 100%;
+            padding: 0 20px;
+            border: none;
+            position: relative;
+            vertical-align: middle;
+            font-size: 14px;
+           
+      
+        
+        }
+                input[type=button] {
+                    position: relative;
+                    float: left;
+                    background: #2196F3;
+                    color: #fff;
+                    font-family: arial;
+                    border-radius: 3px;
+                    overflow: hidden;
+                    text-decoration: none;
+                }
+        #fb_msg_icon:hover {
+            background-color: #eeeeee;
+        }
+  
+         
+     
+        
+        
+        
+        
+        
+    </style>
+</head>
+<body>
+    <div class="ICON" >
+        <a href="fb.com/msg/pk1" title="Get in touch with me">
+            <img id="fb_msg_icon" width="20%" height="20%" style="margin-left:250px" src="http://store-images.s-microsoft.com/image/apps.7488.13510798886918977.69182166-f125-495d-80d2-44fdaab21523.8fcea13e-5d9a-48a9-9937-b26deeced1b5">
+        </a>
+    </div>
+    <div class="userContainer">
+        <h2>Users</h2>
+        <div id="users" style="border:1px solid red">
+        </div>
+    </div>
+    <div class="screen">
+        <div class="conversationContainer">
+            <input id="data" placeholder="Type or thumb up ;)" />
+           
+            <!--<input type="button" id="datasend" value="send" />-->
+            <hr />
+            <input type="file" id="file1" />
+            <input type="button" id="datasend2" value="send" />
+            <hr />
+            <div id="target">
+                <p>Drag and drop files here...</p>
+            </div>
+            <hr />
+            <div class="conversation" id="conversation">
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
